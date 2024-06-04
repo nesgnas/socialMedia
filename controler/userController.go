@@ -339,3 +339,42 @@ func DeleteComment() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"message": "Comment visibility set to false", "result": result})
 	}
 }
+
+func GetPost() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		userIDParam := c.Param("userid")
+		userID, err := primitive.ObjectIDFromHex(userIDParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
+
+		filter := bson.M{"_id": userID}
+
+		cursor, err := userCollection.Find(ctx, filter)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer cursor.Close(ctx)
+
+		var results []interface{}
+		for cursor.Next(ctx) {
+			var result bson.M
+			if err := cursor.Decode(&result); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+
+			}
+			results = append(results, result)
+		}
+
+		if err := cursor.Err(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, results)
+	}
+}
