@@ -97,16 +97,17 @@ func NewCommentPost() gin.HandlerFunc {
 		defer cancel()
 
 		// Get the user ID from the URL parameter
-		userIDParam := c.Param("userid")
-		userID, err := primitive.ObjectIDFromHex(userIDParam)
+		sender := c.Param("sender")
+		_, err := primitive.ObjectIDFromHex(sender)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sender ID"})
 			return
 		}
 
 		// Bind the incoming JSON to the Comment struct
 		var newComment struct {
-			PostID string `json:"postid" binding:"required"`
+			OwnerPost string `json:"ownerPost" binding:"required"`
+			PostID    string `json:"postid" binding:"required"`
 			strucData.Comment
 		}
 
@@ -122,9 +123,15 @@ func NewCommentPost() gin.HandlerFunc {
 			return
 		}
 
+		ownerPost, err := primitive.ObjectIDFromHex(newComment.OwnerPost)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
+			return
+		}
+
 		// Generate a new ObjectID for the comment
 		newComment.Comment.CommentID = primitive.NewObjectID().Hex()
-		newComment.Comment.UserID = userIDParam
+		newComment.Comment.UserID = sender
 		newComment.Comment.CommentDate = time.Now() // Set the comment date to the current time
 		newComment.Comment.Visible = true
 
@@ -134,7 +141,7 @@ func NewCommentPost() gin.HandlerFunc {
 		}
 
 		// Filter to update only the specific post in the user's document
-		filter := bson.M{"_id": userID}
+		filter := bson.M{"_id": ownerPost}
 		arrayFilters := options.ArrayFilters{
 			Filters: []interface{}{bson.M{"p._id": postID}},
 		}
@@ -148,7 +155,7 @@ func NewCommentPost() gin.HandlerFunc {
 
 		// Return success response with the newly created comment's ID
 		c.JSON(http.StatusCreated, gin.H{"message": "Comment created successfully!", "comment_id": newComment.Comment.CommentID,
-			"Text": newComment.Comment.Text, "Userid": userIDParam, "result": result})
+			"Text": newComment.Comment.Text, "sender": sender, "result": result})
 	}
 }
 
