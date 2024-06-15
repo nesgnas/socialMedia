@@ -8,7 +8,7 @@ import (
 
 func Page(incomingRouter *gin.Engine) {
 	incomingRouter.Use(middleware.CORSMiddleware())
-	incomingRouter.POST("/initiateUser", controler.NewUser())
+	incomingRouter.POST("/initiateUser/", controler.NewUser())
 	incomingRouter.POST("/createPost/:userid", controler.NewPost())
 	incomingRouter.POST("/commentPost/:sender", controler.NewCommentPost())
 	incomingRouter.POST("/likePost/:userid", controler.NewLikePost())

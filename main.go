@@ -8,7 +8,8 @@ import (
 func main() {
 
 	// Create a new Gin router
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Logger())
 
 	router.Page(r)
 
