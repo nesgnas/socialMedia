@@ -385,3 +385,43 @@ func GetPost() gin.HandlerFunc {
 		c.JSON(http.StatusOK, results)
 	}
 }
+
+func FindUserByUsername() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// Get the username from the URL parameter
+		username := c.Param("userName")
+		//c.JSON(http.StatusInternalServerError, gin.H{"username": username})
+
+		// Define the filter to search for users with the given username
+		filter := bson.M{"username": username}
+
+		// Find the users matching the filter
+		cursor, err := userCollection.Find(ctx, filter)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer cursor.Close(ctx)
+
+		var userIDs []string
+		for cursor.Next(ctx) {
+			var user strucData.User
+			if err := cursor.Decode(&user); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			userIDs = append(userIDs, user.UserId.Hex())
+		}
+
+		if err := cursor.Err(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Return the list of user IDs
+		c.JSON(http.StatusOK, gin.H{"user_ids": userIDs})
+	}
+}

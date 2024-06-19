@@ -15,4 +15,5 @@ func Page(incomingRouter *gin.Engine) {
 	incomingRouter.PUT("/deletePost/:userid", controler.DeletePost())
 	incomingRouter.PUT("/deleteComment/:userid", controler.DeleteComment())
 	incomingRouter.GET("/getPost/:userid", controler.GetPost())
+	incomingRouter.GET("/find/:userName", controler.FindUserByUsername())
 }
