@@ -393,27 +393,41 @@ func FindUserByUsername() gin.HandlerFunc {
 
 		// Get the username from the URL parameter
 		username := c.Param("userName")
-		//c.JSON(http.StatusInternalServerError, gin.H{"username": username})
 
 		// Define the filter to search for users with the given username
 		filter := bson.M{"username": username}
 
-		// Find the users matching the filter
-		cursor, err := userCollection.Find(ctx, filter)
+		// Define the projection to return only the fields we need
+		projection := bson.M{
+			"_id":      1,
+			"username": 1,
+			"usericon": 1,
+		}
+
+		// Find the users matching the filter with the specified projection
+		cursor, err := userCollection.Find(ctx, filter, options.Find().SetProjection(projection))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		defer cursor.Close(ctx)
 
-		var userIDs []string
+		var users []struct {
+			ID       primitive.ObjectID `json:"id" bson:"_id"`
+			Username string             `json:"username" bson:"username"`
+			UserIcon strucData.UserIcon `json:"usericon" bson:"usericon"`
+		}
 		for cursor.Next(ctx) {
-			var user strucData.User
+			var user struct {
+				ID       primitive.ObjectID `json:"id" bson:"_id"`
+				Username string             `json:"username" bson:"username"`
+				UserIcon strucData.UserIcon `json:"usericon" bson:"usericon"`
+			}
 			if err := cursor.Decode(&user); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			userIDs = append(userIDs, user.UserId.Hex())
+			users = append(users, user)
 		}
 
 		if err := cursor.Err(); err != nil {
@@ -421,8 +435,8 @@ func FindUserByUsername() gin.HandlerFunc {
 			return
 		}
 
-		// Return the list of user IDs
-		c.JSON(http.StatusOK, gin.H{"user_ids": userIDs})
+		// Return the list of users with their ID, username, and user icon
+		c.JSON(http.StatusOK, users)
 	}
 }
 
