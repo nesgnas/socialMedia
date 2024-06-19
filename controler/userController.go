@@ -425,3 +425,97 @@ func FindUserByUsername() gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"user_ids": userIDs})
 	}
 }
+
+// UpdateUsername function to update the username
+func UpdateUsername() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Create a context with a timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// Get the user ID from the URL parameter
+		userIDParam := c.Param("userid")
+		userID, err := primitive.ObjectIDFromHex(userIDParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
+
+		// Define a struct for the request body
+		var updateRequest struct {
+			Username string `json:"username"`
+		}
+
+		// Bind the incoming JSON to the request struct
+		if err := c.ShouldBindJSON(&updateRequest); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Ensure that username is provided
+		if updateRequest.Username == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Username is required"})
+			return
+		}
+
+		// Construct the update query for username
+		update := bson.M{"$set": bson.M{"username": updateRequest.Username}}
+
+		// Apply the update to the user document
+		result, err := userCollection.UpdateOne(ctx, bson.M{"_id": userID}, update)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Return success response
+		c.JSON(http.StatusOK, gin.H{"message": "Username updated successfully", "result": result})
+	}
+}
+
+// UpdateUserIcon function to update the user icon
+func UpdateUserIcon() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Create a context with a timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// Get the user ID from the URL parameter
+		userIDParam := c.Param("userid")
+		userID, err := primitive.ObjectIDFromHex(userIDParam)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
+
+		// Define a struct for the request body
+		var updateRequest struct {
+			UserIcon strucData.UserIcon `json:"usericon"`
+		}
+
+		// Bind the incoming JSON to the request struct
+		if err := c.ShouldBindJSON(&updateRequest); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Ensure that user icon URL is provided
+		if updateRequest.UserIcon.IconURL == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "User icon URL is required"})
+			return
+		}
+
+		// Construct the update query for user icon
+		update := bson.M{"$set": bson.M{"usericon": updateRequest.UserIcon}}
+
+		// Apply the update to the user document
+		result, err := userCollection.UpdateOne(ctx, bson.M{"_id": userID}, update)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Return success response
+		c.JSON(http.StatusOK, gin.H{"message": "User icon updated successfully", "result": result})
+	}
+}
